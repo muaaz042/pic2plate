@@ -1,9 +1,12 @@
 const express = require("express");
+const dotenv = require('dotenv');
+dotenv.config();
 const { GoogleGenerativeAI } = require("@google/generative-ai");
 
 const router = express.Router();
 
-const genAI = new GoogleGenerativeAI("AIzaSyB0gwERkNOGpChmQ-EF7ZnEEp1Yt9yly1U");
+
+const genAI = new GoogleGenerativeAI(process.env.gemini_key);
 const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
 
 router.post("/recipe", async (req, res) => {
