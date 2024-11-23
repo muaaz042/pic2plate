@@ -5,6 +5,9 @@ export default {
     "./src/**/*.{js,ts,jsx,tsx}",
   ],
   theme: {
+    backgroundImage: {
+      'bg': 'url(/bg.png)'
+    },
     extend: {
       colors: {
         orange: '#DD8017'
