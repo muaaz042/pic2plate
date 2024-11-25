@@ -1,8 +1,25 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { IoCameraOutline, IoFastFood } from "react-icons/io5";
 import { FaLongArrowAltRight } from "react-icons/fa";
+import Gemini from './Gemini';
+import axios from 'axios';
 
 const Home = () => {
+    const [dishName, setDishName] = useState("chicken biryani");
+    const [response, setResponse] = useState("");
+
+    
+      const handleClick = async () => {
+        console.log(dishName);
+        try {
+            const res = await axios.post('http://localhost:5000/recipe', { dishName });
+            setResponse(res);
+          } catch (error) {
+            console.error('Error in Axios request:', error.response || error);
+            setResponse({ data: null, loading: false }); // Handle errors
+          }
+      };
+
     return (
         <div id='home' className="w-full">
             <div className="pt-8 pb-12 px-5">
@@ -19,7 +36,7 @@ const Home = () => {
                     <input
                         className="text-zinc-600 font-mono ring-1 md:h-16 h-12 text-xl ring-zinc-400 focus:ring-2 w-full focus:ring-orange outline-none duration-300 placeholder:text-zinc-600 placeholder:opacity-50 rounded-full px-4 py-1 shadow-md focus:shadow-lg focus:shadow-orange"
                         placeholder="Enter recipe name..."
-                        name="text"
+                        onChange={(e) => setDishName(e.target.value)}
                         type="text"
                     />
 
@@ -31,13 +48,20 @@ const Home = () => {
                     <input id="picture" type="file" className="flex h-10 w-full rounded-md border border-input bg-white px-3 py-2 text-sm text-gray-400 file:border-0 file:bg-transparent file:text-gray-600 file:text-sm file:font-medium" />
 
                     <button
+                        onClick={handleClick}
                         className="flex justify-center gap-2 items-center mx-auto shadow-xl text-lg bg-gray-50 backdrop-blur-md lg:font-semibold isolation-auto border-gray-50 before:absolute before:w-full before:transition-all before:duration-700 before:hover:w-full before:-left-full before:hover:left-0 before:rounded-2xl before:bg-orange hover:text-gray-50 before:-z-10 before:aspect-square before:hover:scale-150 before:hover:duration-700 relative z-10 px-4 py-2 overflow-hidden border-2 rounded-2xl group"
                     >
                         Give recipe
                     </button>
                 </div>
             </div>
+            {response.loading ? (
+                <p>Loading recipe...</p>
+            ) : (
+                <Gemini content={response?.data?.text?.split('\n') || []} />
+            )}
         </div>
+
     );
 };
 
