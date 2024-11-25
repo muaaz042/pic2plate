@@ -2,7 +2,7 @@ import React from 'react'
 
 const About = () => {
     return (
-        <div id='about' className='flex flex-col justify-center gap-5 md:px-24 px-7 md:py-20 py-10'>
+        <div id='about' className='flex flex-col bg-gray-100 justify-center gap-5 md:px-24 px-7 md:py-20 py-10'>
             <h1 className='md:text-8xl text-5xl text-center'>About</h1>
             <p className='text-justify'>
                 Welcome to Your <span className='font-semibold'>AI-Powered Kitchen Assistant,</span> a revolutionary tool that bridges the gap between creativity and convenience in cooking. Whether you're a seasoned chef, an experimental foodie, or someone just starting their culinary journey, this platform is here to transform the way you approach the kitchen.
