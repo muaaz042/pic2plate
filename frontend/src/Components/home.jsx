@@ -4,7 +4,7 @@ import { FaLongArrowAltRight } from "react-icons/fa";
 import Loader from './Loader';
 import Gemini from './Gemini';
 import axios from 'axios';
-import { BACKEND_URL } from '../../../backend/constants';
+import { BACKEND_URL } from '../../constants';
 
 const Home = () => {
     const [dishName, setDishName] = useState("");

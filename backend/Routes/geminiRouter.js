@@ -6,8 +6,6 @@ const fs = require("fs/promises");
 require("dotenv").config();
 const { identifyWithAI, generateRecipe } = require("./gemini");
 
-// const identifyWithAI = require("../Gemini/identifyDishBYGemini");
-// const generateRecipe = require("../Gemini/recipeGenerator");
 
 // Configure Multer with diskStorage
 const storage = multer.diskStorage({
