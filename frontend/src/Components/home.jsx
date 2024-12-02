@@ -4,6 +4,7 @@ import { FaLongArrowAltRight } from "react-icons/fa";
 import Loader from './Loader';
 import Gemini from './Gemini';
 import axios from 'axios';
+import { BACKEND_URL } from '../../../backend/constants';
 
 const Home = () => {
     const [dishName, setDishName] = useState("");
@@ -15,7 +16,7 @@ const Home = () => {
         console.log("Dish Name:", dishName);
         setLoading(true);
         try {
-            const res = await axios.post('http://localhost:3000/api/generate', { dishName });
+            const res = await axios.post(`${BACKEND_URL}/api/generate`, { dishName });
             console.log(res.data);
             setResponse(res.data);
         } catch (error) {
@@ -36,7 +37,7 @@ const Home = () => {
             const formData = new FormData();
             formData.append("image", selectedFile);
 
-            const res = await axios.post('http://localhost:3000/api/upload', formData, {
+            const res = await axios.post(`${BACKEND_URL}/api/upload`, formData, {
                 headers: {
                     'Content-Type': 'multipart/form-data',
                 },
