@@ -6,22 +6,49 @@ import Gemini from './Gemini';
 import axios from 'axios';
 
 const Home = () => {
-    const [dishName, setDishName] = useState("chicken biryani");
+    const [dishName, setDishName] = useState("");
     const [response, setResponse] = useState(null);
-    const [loading, setLoading] = useState(false); // Separate state for loading
+    const [loading, setLoading] = useState(false);
+    const [selectedFile, setSelectedFile] = useState(null); // State for file input
 
-    const handleClick = async () => {
-        console.log(dishName);
-        setLoading(true); // Start loading
+    const handleTextSubmit = async () => {
+        console.log("Dish Name:", dishName);
+        setLoading(true);
         try {
-            const res = await axios.post('http://localhost:5000/recipe', { dishName });
+            const res = await axios.post('http://localhost:3000/api/generate', { dishName });
             console.log(res.data);
-            setResponse(res.data); 
+            setResponse(res.data);
         } catch (error) {
             console.error('Error in Axios request:', error.response || error);
-            setResponse(null); // Reset response on error
+            setResponse(null);
         } finally {
-            setLoading(false); // Stop loading
+            setLoading(false);
+        }
+    };
+
+    const handleFileSubmit = async () => {
+        if (!selectedFile) {
+            alert("Please upload an image.");
+            return;
+        }
+        setLoading(true);
+        try {
+            const formData = new FormData();
+            formData.append("image", selectedFile);
+
+            const res = await axios.post('http://localhost:3000/api/upload', formData, {
+                headers: {
+                    'Content-Type': 'multipart/form-data',
+                },
+            });
+
+            console.log(res.data);
+            setResponse(res.data);
+        } catch (error) {
+            console.error('Error in Axios request:', error.response || error);
+            setResponse(null);
+        } finally {
+            setLoading(false);
         }
     };
 
@@ -49,6 +76,13 @@ const Home = () => {
                         type="text"
                     />
 
+                    <button
+                        onClick={handleTextSubmit}
+                        className="flex justify-center gap-2 items-center mx-auto shadow-xl text-lg bg-gray-50 backdrop-blur-md lg:font-semibold isolation-auto border-gray-50 before:absolute before:w-full before:transition-all before:duration-700 before:hover:w-full before:-left-full before:hover:left-0 before:rounded-2xl before:bg-orange hover:text-gray-50 before:-z-10 before:aspect-square before:hover:scale-150 before:hover:duration-700 relative z-10 px-4 py-2 overflow-hidden border-2 rounded-2xl group"
+                    >
+                        Give Recipe
+                    </button>
+
                     <div className="w-full my-5 relative">
                         <hr className="w-full" />
                         <p className="bg-white px-2 absolute -top-3 left-1/2 transform -translate-x-1/2">OR</p>
@@ -57,21 +91,22 @@ const Home = () => {
                     <input
                         id="picture"
                         type="file"
+                        onChange={(e) => setSelectedFile(e.target.files[0])}
                         className="flex h-10 w-full rounded-md border border-input bg-white px-3 py-2 text-sm text-gray-400 file:border-0 file:bg-transparent file:text-gray-600 file:text-sm file:font-medium"
                     />
 
                     <button
-                        onClick={handleClick}
+                        onClick={handleFileSubmit}
                         className="flex justify-center gap-2 items-center mx-auto shadow-xl text-lg bg-gray-50 backdrop-blur-md lg:font-semibold isolation-auto border-gray-50 before:absolute before:w-full before:transition-all before:duration-700 before:hover:w-full before:-left-full before:hover:left-0 before:rounded-2xl before:bg-orange hover:text-gray-50 before:-z-10 before:aspect-square before:hover:scale-150 before:hover:duration-700 relative z-10 px-4 py-2 overflow-hidden border-2 rounded-2xl group"
                     >
-                        Give recipe
+                        Upload Image
                     </button>
                 </div>
             </div>
             {loading ? (
                 <Loader />
             ) : response ? (
-                <Gemini content={response.text?.split('\n') || []} />
+                <Gemini content={response} />
             ) : null}
         </div>
     );
