@@ -1,30 +1,28 @@
 const express = require('express');
 const cors = require('cors');
-// const path = require('path');
 require('dotenv').config();
 
 const app = express();
 const port = process.env.PORT || 3000;
 const geminiRouter = require('./Routes/geminiRouter');
 
-// Enable CORS
-app.use(cors());
+const corsOptions = {
+  origin: ["https://pic2plate.vercel.app", "http://localhost:5173"],
+  optionsSuccessStatus: 200,
+  credentials: true,
+};
+
+
+app.use(cors(corsOptions));
 app.use(express.json());
+
 app.use('/api', geminiRouter);
 
-// Serve static files for the frontend
-// app.use(express.static(path.join(__dirname, 'public')));
 
 app.get('/', (req, res) => {
-  // res.sendFile(path.join(__dirname, 'public', 'index.html'));
-  res.send('Hello World');
+  res.send('Server is running');
 });
 
-// Start the server
 app.listen(port, () => {
   console.log(`Server is running on http://localhost:${port}`);
 });
-//home
-// app.get('/', (req, res) => {
-//   res.send('Hello World');
-// } );
