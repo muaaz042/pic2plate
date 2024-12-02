@@ -10,13 +10,18 @@ const Home = () => {
     const [dishName, setDishName] = useState("");
     const [response, setResponse] = useState(null);
     const [loading, setLoading] = useState(false);
-    const [selectedFile, setSelectedFile] = useState(null); // State for file input
+    const [selectedFile, setSelectedFile] = useState(null);
+
+    const config = {
+        headers: { "Content-Type": "application/json" },
+        withCredentials: true,
+      };
 
     const handleTextSubmit = async () => {
         console.log("Dish Name:", dishName);
         setLoading(true);
         try {
-            const res = await axios.post(`${BACKEND_URL}/api/generate`, { dishName });
+            const res = await axios.post(`${BACKEND_URL}/api/generate`, { dishName }, config);
             console.log(res.data);
             setResponse(res.data);
         } catch (error) {
