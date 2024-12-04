@@ -40,10 +40,11 @@ router.post("/upload", upload.single("image"), async (req, res) => {
       let recipeObj;
       try {
         recipeObj = typeof recipe === "string" ? JSON.parse(recipe) : recipe;
-      } catch (parseError) {
-        console.error("Failed to parse recipe:", parseError);
-        throw new Error("Invalid recipe format");
+      } catch (error) {
+        console.error("Failed to parse recipe:", error);
+        recipeObj = { error: "Recipe format invalid" };
       }
+
 
       await fs.unlink(uploadedFilePath);
       return res.status(200).json({
@@ -80,10 +81,11 @@ router.post("/generate", async (req, res) => {
     let recipeObj;
     try {
       recipeObj = typeof recipe === "string" ? JSON.parse(recipe) : recipe;
-    } catch (parseError) {
-      console.error("Failed to parse recipe:", parseError);
-      throw new Error("Invalid recipe format");
+    } catch (error) {
+      console.error("Failed to parse recipe:", error);
+      recipeObj = { error: "Recipe format invalid" };
     }
+
 
     res.status(200).json({
       dish: dishName,
