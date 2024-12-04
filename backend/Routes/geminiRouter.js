@@ -38,10 +38,17 @@ router.post("/upload", upload.single("image"), async (req, res) => {
     if (dishName) {
       const recipe = await generateRecipe(dishName);
       console.log("Recipe generated:", recipe);
+      let recipeObj;
+      try {
+        recipeObj = recipe ? JSON.parse(recipe) : null;
+      } catch (error) {
+        console.error("Error parsing recipe:", error);
+      }
+
       await fs.unlink(uploadedFilePath);
       return res.status(200).json({
         dish: dishName,
-        recipe: JSON.parse(recipe),
+        recipe: recipeObj,
       });
     }
 
@@ -66,11 +73,17 @@ router.post("/upload", upload.single("image"), async (req, res) => {
 });
 //by disname
 router.post("/generate", async (req, res) => {
-  const {dishName} = req.body;
+  const { dishName } = req.body;
   try {
     const recipe = await generateRecipe(dishName);
     console.log("Recipe generated:", recipe);
-    const recipeObj = JSON.parse(recipe);
+    let recipeObj;
+    try {
+      recipeObj = recipe ? JSON.parse(recipe) : null;
+    } catch (error) {
+      console.error("Error parsing recipe:", error);
+    }
+
     res.status(200).json({
       dish: dishName,
       recipe: recipeObj,
