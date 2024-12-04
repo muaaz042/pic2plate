@@ -66,30 +66,17 @@ router.post("/upload", upload.single("image"), async (req, res) => {
 });
 //by disname
 router.post("/generate", async (req, res) => {
-  const { dishName } = req.body;
+  const {dishName} = req.body;
   try {
     const recipe = await generateRecipe(dishName);
-    console.log("Recipe generated:", recipe);
-    let recipeObj;
-    try {
-      if (recipe && recipe !== 'undefined') {
-        recipeObj = JSON.parse(recipe);
-      } else {
-        console.error("Recipe is empty or undefined:", recipe);
-        return res.status(500).json({
-          error: "Recipe generation failed, no valid recipe returned",
-        });
-      }
-    } catch (error) {
-      console.error("Error parsing recipe:", error);
-      return res.status(500).json({
-        error: "An error occurred while parsing the recipe",
-      });
-    }
-
+    console.log(typeof(recipe));
+    console.log(recipe?.Ingredients)
+    console.log(recipe);
+    // const rcp = JSON.stringify(recipe)
+    // const recipeObj = JSON.parse(rcp);
     res.status(200).json({
       dish: dishName,
-      recipe: recipeObj,
+      recipe: recipe,
     });
   } catch (error) {
     console.error("Error generating recipe:", error);
