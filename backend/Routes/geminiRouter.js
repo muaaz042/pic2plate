@@ -20,6 +20,7 @@ const storage = multer.diskStorage({
 });
 const upload = multer({ storage });
 
+// Route to upload and process an image and generate recipe
 router.post("/upload", upload.single("image"), async (req, res) => {
   const uploadedFilePath = req.file?.path;
   console.log("Uploaded file path try 1:", uploadedFilePath);
@@ -37,19 +38,10 @@ router.post("/upload", upload.single("image"), async (req, res) => {
     if (dishName) {
       const recipe = await generateRecipe(dishName);
       console.log("Recipe generated:", recipe);
-      let recipeObj;
-      try {
-        recipeObj = typeof recipe === "string" ? JSON.parse(recipe) : recipe;
-      } catch (error) {
-        console.error("Failed to parse recipe:", error);
-        recipeObj = { error: "Recipe format invalid" };
-      }
-
-
       await fs.unlink(uploadedFilePath);
       return res.status(200).json({
         dish: dishName,
-        recipe: recipeObj,
+        recipe: JSON.parse(recipe),
       });
     }
 
@@ -72,21 +64,13 @@ router.post("/upload", upload.single("image"), async (req, res) => {
     });
   }
 });
-
+//by disname
 router.post("/generate", async (req, res) => {
-  const { dishName } = req.body;
+  const {dishName} = req.body;
   try {
     const recipe = await generateRecipe(dishName);
     console.log("Recipe generated:", recipe);
-    let recipeObj;
-    try {
-      recipeObj = typeof recipe === "string" ? JSON.parse(recipe) : recipe;
-    } catch (error) {
-      console.error("Failed to parse recipe:", error);
-      recipeObj = { error: "Recipe format invalid" };
-    }
-
-
+    const recipeObj = JSON.parse(recipe);
     res.status(200).json({
       dish: dishName,
       recipe: recipeObj,
@@ -97,8 +81,7 @@ router.post("/generate", async (req, res) => {
       error: "An error occurred while generating the recipe",
     });
   }
-});
-
-
+}
+);
 
 module.exports = router;
