@@ -20,7 +20,6 @@ const storage = multer.diskStorage({
 });
 const upload = multer({ storage });
 
-// Route to upload and process an image and generate recipe
 router.post("/upload", upload.single("image"), async (req, res) => {
   const uploadedFilePath = req.file?.path;
   console.log("Uploaded file path try 1:", uploadedFilePath);
@@ -38,10 +37,18 @@ router.post("/upload", upload.single("image"), async (req, res) => {
     if (dishName) {
       const recipe = await generateRecipe(dishName);
       console.log("Recipe generated:", recipe);
+      let recipeObj;
+      try {
+        recipeObj = typeof recipe === "string" ? JSON.parse(recipe) : recipe;
+      } catch (parseError) {
+        console.error("Failed to parse recipe:", parseError);
+        throw new Error("Invalid recipe format");
+      }
+
       await fs.unlink(uploadedFilePath);
       return res.status(200).json({
         dish: dishName,
-        recipe: JSON.parse(recipe),
+        recipe: recipeObj,
       });
     }
 
@@ -64,13 +71,20 @@ router.post("/upload", upload.single("image"), async (req, res) => {
     });
   }
 });
-//by disname
+
 router.post("/generate", async (req, res) => {
-  const {dishName} = req.body;
+  const { dishName } = req.body;
   try {
     const recipe = await generateRecipe(dishName);
     console.log("Recipe generated:", recipe);
-    const recipeObj = JSON.parse(recipe);
+    let recipeObj;
+    try {
+      recipeObj = typeof recipe === "string" ? JSON.parse(recipe) : recipe;
+    } catch (parseError) {
+      console.error("Failed to parse recipe:", parseError);
+      throw new Error("Invalid recipe format");
+    }
+
     res.status(200).json({
       dish: dishName,
       recipe: recipeObj,
@@ -81,14 +95,8 @@ router.post("/generate", async (req, res) => {
       error: "An error occurred while generating the recipe",
     });
   }
-}
-);
+});
 
-// Mock custom model identification function
-async function identifyWithCustomModel(imagePath) {
-  // Here, call your Kaggle model (e.g., via Python script or API)
-  // Return null if the dish is not identified
-  return null; // Replace with actual logic
-}
+
 
 module.exports = router;

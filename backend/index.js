@@ -3,7 +3,7 @@ const cors = require('cors');
 require('dotenv').config();
 
 const app = express();
-// const port = process.env.PORT || 3000;
+const port = process.env.PORT || 3000;
 const geminiRouter = require('./Routes/geminiRouter');
 
 const corsOptions = {
@@ -26,6 +26,6 @@ app.get('/', (req, res) => {
 
 module.exports = app;
 
-// app.listen(port, () => {
-//   console.log(`Server is running on :${port}`);
-// });
+app.listen(port, () => {
+  console.log(`Server is running on :${port}`);
+});
