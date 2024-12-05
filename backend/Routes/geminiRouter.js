@@ -72,7 +72,7 @@ router.post("/generate", async (req, res) => {
     console.log(recipe?.Ingredients);
     console.log(typeof(recipe));
     console.log(recipe);
-    const rcp = JSON.stringify(recipe);
+    // const rcp = JSON.stringify(recipe);
     const recipeObj = JSON.parse(rcp);
     res.status(200).json({
       dish: dishName,
