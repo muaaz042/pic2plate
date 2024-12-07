@@ -14,7 +14,7 @@ const storage = multer.diskStorage({
     cb(null, uploadPath); // Save files to 'uploads' directory
   },
   filename: (req, file, cb) => {
-    const uniqueName = `${Date.now()}-${file.originalname}`; // Add timestamp to filename
+    const uniqueName = `${Date.now()}-${file._originalname}`; // Add timestamp to filename
     cb(null, uniqueName);
   },
 });
@@ -69,10 +69,7 @@ router.post("/generate", async (req, res) => {
   const {dishName} = req.body;
   try {
     const recipe = await generateRecipe(dishName);
-    // console.log(recipe?.Ingredients);
-    // console.log(typeof(recipe));
-    // console.log(recipe);
-    // const rcp = JSON.stringify(recipe);
+    console.log("Recipe generated:", recipe);
     const recipeObj = JSON.parse(recipe);
     res.status(200).json({
       dish: dishName,
