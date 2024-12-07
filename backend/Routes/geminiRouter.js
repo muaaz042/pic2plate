@@ -61,6 +61,7 @@ router.post("/upload", upload.single("image"), async (req, res) => {
     });
   }
 });
+
 //by disname
 router.post("/generate", async (req, res) => {
   const { dishName } = req.body;
