@@ -29,11 +29,8 @@ router.post("/upload", upload.single("image"), async (req, res) => {
       return res.status(400).json({ error: "No image uploaded" });
     }
 
-    let dishName = await identifyWithCustomModel(uploadedFilePath);
-    if (!dishName) {
-      dishName = await identifyWithAI(uploadedFilePath, "image/jpeg");
-      console.log("Dish identified:", dishName);
-    }
+    let dishName = await identifyWithAI(uploadedFilePath, "image/jpeg");
+    console.log("Dish identified:", dishName);
 
     if (dishName) {
       const recipe = await generateRecipe(dishName);
@@ -66,7 +63,7 @@ router.post("/upload", upload.single("image"), async (req, res) => {
 });
 //by disname
 router.post("/generate", async (req, res) => {
-  const {dishName} = req.body;
+  const { dishName } = req.body;
   try {
     const recipe = await generateRecipe(dishName);
     console.log("Recipe generated:", recipe);
