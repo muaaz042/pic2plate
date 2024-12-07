@@ -5,7 +5,7 @@ function Gemini({ content }) {
 
 
   return (
-    <div className="mx-auto py-10 lg:w-2/4 md:w-2/3 sm:w-2/3 w-full">
+    <div className="mx-auto py-10 lg:w-2/4 md:w-2/3 sm:w-2/3 px-5 w-full">
       {dish && <h2 className="text-xl font-bold mb-4">Dish: {dish}</h2>}
       {recipe && (
         <>
