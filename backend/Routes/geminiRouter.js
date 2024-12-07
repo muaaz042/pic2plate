@@ -69,11 +69,11 @@ router.post("/generate", async (req, res) => {
   const {dishName} = req.body;
   try {
     const recipe = await generateRecipe(dishName);
-    console.log(recipe?.Ingredients);
-    console.log(typeof(recipe));
-    console.log(recipe);
+    // console.log(recipe?.Ingredients);
+    // console.log(typeof(recipe));
+    // console.log(recipe);
     // const rcp = JSON.stringify(recipe);
-    const recipeObj = JSON.parse(rcp);
+    const recipeObj = JSON.parse(recipe);
     res.status(200).json({
       dish: dishName,
       recipe: recipeObj,
