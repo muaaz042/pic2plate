@@ -4,10 +4,12 @@ import { FaLongArrowAltRight } from "react-icons/fa";
 import Loader from './Loader';
 import Gemini from './Gemini';
 import axios from 'axios';
+import Swal from 'sweetalert2'
 import { BACKEND_URL } from '../../constants';
 
 const Home = () => {
     const [dishName, setDishName] = useState("");
+    const [error, setError] = useState(null);
     const [response, setResponse] = useState(null);
     const [loading, setLoading] = useState(false);
     const [selectedFile, setSelectedFile] = useState(null);
@@ -15,17 +17,29 @@ const Home = () => {
     const config = {
         headers: { "Content-Type": "application/json" },
         withCredentials: true,
-      };
+    };
 
     const handleTextSubmit = async () => {
         console.log("Dish Name:", dishName);
+        if (!dishName) {
+            Swal.fire({
+                icon: "error",
+                title: "Oops...",
+                text: "Please enter recipe name"
+            });
+            return
+        }
         setLoading(true);
+        setError(null); // Clear previous errors
+
         try {
             const res = await axios.post(`${BACKEND_URL}/api/generate`, { dishName }, config);
             console.log(res.data);
             setResponse(res.data);
         } catch (error) {
-            console.error('Error in Axios request:', error.response || error);
+            console.error("Error in Axios request:", error.response || error);
+            const message = error.response?.data?.message || "Something went wrong!";
+            setError(message);
             setResponse(null);
         } finally {
             setLoading(false);
@@ -34,24 +48,33 @@ const Home = () => {
 
     const handleFileSubmit = async () => {
         if (!selectedFile) {
-            alert("Please upload an image.");
+            Swal.fire({
+                icon: "error",
+                title: "Oops...",
+                text: "Please upload an image"
+            });
             return;
         }
+
         setLoading(true);
+        setError(null); // Clear previous errors
+
         try {
             const formData = new FormData();
             formData.append("image", selectedFile);
 
             const res = await axios.post(`${BACKEND_URL}/api/upload`, formData, {
                 headers: {
-                    'Content-Type': 'multipart/form-data',
+                    "Content-Type": "multipart/form-data",
                 },
             });
 
             console.log(res.data);
             setResponse(res.data);
         } catch (error) {
-            console.error('Error in Axios request:', error.response || error);
+            console.error("Error in Axios request:", error.response || error);
+            const message = error.response?.data?.message || "Something went wrong!";
+            setError(message);
             setResponse(null);
         } finally {
             setLoading(false);
@@ -70,11 +93,20 @@ const Home = () => {
                     TRANSFORM YOUR PHOTOS INTO CUISINES
                 </p>
             </div>
+
             <div className="bg-bg flex flex-col gap-8 py-8 px-4">
                 <p className="text-center font-bold lg:text-5xl md:text-4xl sm:text-2xl text-xl">
                     Meet Your Personal AI-Powered Kitchen Assistant
                 </p>
+
                 <div className="bg-white flex justify-center lg:w-2/4 md:w-2/3 sm:w-2/3 w-full mx-auto rounded-2xl flex-col items-center gap-6 p-10 mb-6">
+
+                    {error && (
+                        <div className="text-red-500 text-center font-semibold my-4">
+                            {error}
+                        </div>
+                    )}
+
                     <input
                         className="text-zinc-600 font-mono ring-1 md:h-16 h-12 text-xl ring-zinc-400 focus:ring-2 w-full focus:ring-orange outline-none duration-300 placeholder:text-zinc-600 placeholder:opacity-50 rounded-full px-4 py-1 shadow-md focus:shadow-lg focus:shadow-orange"
                         placeholder="Enter recipe name..."
@@ -109,6 +141,7 @@ const Home = () => {
                     </button>
                 </div>
             </div>
+
             {loading ? (
                 <Loader />
             ) : response ? (
