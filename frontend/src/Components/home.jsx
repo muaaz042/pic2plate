@@ -30,7 +30,7 @@ const Home = () => {
             return
         }
         setLoading(true);
-        setError(null); // Clear previous errors
+        setError(null);
 
         try {
             const res = await axios.post(`${BACKEND_URL}/api/generate`, { dishName }, config);
