@@ -4,7 +4,7 @@ import { FaLongArrowAltRight } from "react-icons/fa";
 import Loader from './Loader';
 import Gemini from './Gemini';
 import axios from 'axios';
-import Swal from 'sweetalert2'
+import Swal from 'sweetalert2';
 import { BACKEND_URL } from '../../constants';
 
 const Home = () => {
