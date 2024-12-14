@@ -70,6 +70,14 @@ const Home = () => {
             });
 
             console.log(res.data);
+            if(res.data.recipe.Ingredients.length == 0){
+                Swal.fire({
+                    icon: "error",
+                    title: "Oops...",
+                    text: "No Dish found"
+                });
+                return;
+            }
             setResponse(res.data);
         } catch (error) {
             console.error("Error in Axios request:", error.response || error);
