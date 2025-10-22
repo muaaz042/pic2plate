@@ -6,137 +6,188 @@ const fs = require("fs/promises");
 require("dotenv").config();
 const { identifyWithAI, generateRecipe } = require("./gemini");
 
-
-// // Configure Multer with diskStorage
+// // ==================== FOR LOCAL DEVELOPMENT ====================
 // const storage = multer.diskStorage({
 //   destination: (req, file, cb) => {
 //     const uploadPath = path.join(__dirname, "../uploads");
-//     cb(null, uploadPath); // Save files to 'uploads' directory
+//     cb(null, uploadPath);
 //   },
 //   filename: (req, file, cb) => {
-//     const uniqueName = `${Date.now()}-${file._originalname}`; // Add timestamp to filename
+//     const uniqueName = `${Date.now()}-${file.originalname}`;
 //     cb(null, uniqueName);
 //   },
 // });
-// const upload = multer({ storage });
 
+// const upload = multer({ 
+//   storage,
+//   limits: { fileSize: 5 * 1024 * 1024 }, // 5MB limit
+//   fileFilter: (req, file, cb) => {
+//     const allowedTypes = /jpeg|jpg|png|webp/;
+//     const extname = allowedTypes.test(path.extname(file.originalname).toLowerCase());
+//     const mimetype = allowedTypes.test(file.mimetype);
+    
+//     if (mimetype && extname) {
+//       return cb(null, true);
+//     }
+//     cb(new Error("Only image files (jpeg, jpg, png, webp) are allowed"));
+//   }
+// });
+
+// ==================== FOR VERCEL DEPLOYMENT ====================
 const storage = multer.diskStorage({
   destination: (req, file, cb) => {
     const uploadPath = "/tmp"; // Vercel's writable directory
-    cb(null, uploadPath); 
+    cb(null, uploadPath);
   },
   filename: (req, file, cb) => {
     const uniqueName = `${Date.now()}-${file.originalname}`;
     cb(null, uniqueName);
   },
 });
-const upload = multer({ storage });
 
+const upload = multer({ 
+  storage,
+  limits: { fileSize: 5 * 1024 * 1024 }, // 5MB limit
+  fileFilter: (req, file, cb) => {
+    const allowedTypes = /jpeg|jpg|png|webp/;
+    const extname = allowedTypes.test(path.extname(file.originalname).toLowerCase());
+    const mimetype = allowedTypes.test(file.mimetype);
+    
+    if (mimetype && extname) {
+      return cb(null, true);
+    }
+    cb(new Error("Only image files (jpeg, jpg, png, webp) are allowed"));
+  }
+});
+// ============================================================
 
+// Helper function to clean up file
+async function cleanupFile(filePath) {
+  try {
+    await fs.unlink(filePath);
+    console.log(`🗑️ Cleaned up file: ${filePath}`);
+  } catch (err) {
+    console.error(`Failed to delete file ${filePath}:`, err);
+  }
+}
+
+// Helper function to handle Gemini 503 errors with retry
+async function retryOperation(operation, maxRetries = 3, delay = 2000) {
+  for (let i = 0; i < maxRetries; i++) {
+    try {
+      return await operation();
+    } catch (error) {
+      const is503 = error.message.includes("503") || error.message.includes("overloaded");
+      
+      if (is503 && i < maxRetries - 1) {
+        console.log(`⚠️ Attempt ${i + 1} failed (503). Retrying in ${delay}ms...`);
+        await new Promise(resolve => setTimeout(resolve, delay));
+        delay *= 2; // Exponential backoff
+      } else {
+        throw error;
+      }
+    }
+  }
+}
 
 router.post("/upload", upload.single("image"), async (req, res) => {
   const uploadedFilePath = req.file?.path;
-  console.log("Uploaded file path:", uploadedFilePath);
+  console.log("📤 Uploaded file path:", uploadedFilePath);
 
   try {
     if (!uploadedFilePath) {
       return res.status(400).json({ error: "No image uploaded" });
     }
 
-    const dishName = await identifyWithAI(uploadedFilePath, "image/jpeg");
-    console.log("Dish identified:", dishName);
+    // Verify file exists
+    try {
+      await fs.access(uploadedFilePath);
+    } catch {
+      return res.status(400).json({ error: "Uploaded file not found" });
+    }
 
-    if (dishName) {
-      const recipe = await generateRecipe(dishName);
-      console.log("Recipe generated:", recipe);
-      
-      // Delete file after processing
-      await fs.unlink(uploadedFilePath); 
+    // Identify dish with retry logic
+    const dishData = await retryOperation(
+      () => identifyWithAI(uploadedFilePath, req.file.mimetype)
+    );
+    
+    console.log("✅ Dish identified:", dishData);
 
-      return res.status(200).json({
-        dish: dishName,
-        recipe: JSON.parse(recipe),
+    const dishName = dishData.dish;
+
+    // Generate recipe with retry logic
+    const recipeObj = await retryOperation(
+      () => generateRecipe(dishName)
+    );
+    
+    console.log("✅ Recipe generated:", recipeObj);
+
+    // Clean up file after successful processing
+    await cleanupFile(uploadedFilePath);
+
+    return res.status(200).json({
+      dish: dishName,
+      recipe: recipeObj,
+    });
+  } catch (error) {
+    console.error("❌ Error processing image:", error);
+    
+    // Clean up file on error
+    if (uploadedFilePath) {
+      await cleanupFile(uploadedFilePath);
+    }
+
+    // Handle specific error types
+    if (error.message.includes("503") || error.message.includes("overloaded")) {
+      return res.status(503).json({
+        error: "The AI service is currently overloaded. Please try again in a few moments.",
+        retryAfter: 30
       });
     }
 
-    await fs.unlink(uploadedFilePath); 
-    return res.status(404).json({
-      dish: null,
-      recipe: null,
-      error: "Dish could not be identified",
-    });
-  } catch (error) {
-    console.error("Error processing image:", error);
-
-    if (uploadedFilePath) {
-      await fs.unlink(uploadedFilePath); 
+    if (error.message.includes("Could not identify")) {
+      return res.status(404).json({
+        error: "Could not identify the dish from the image. Please try a clearer photo.",
+      });
     }
+
     res.status(500).json({
-      error: "An error occurred while processing the image",
+      error: "An error occurred while processing the image. Please try again.",
     });
   }
 });
 
-// Route to upload and process an image and generate recipe
-// router.post("/upload", upload.single("image"), async (req, res) => {
-//   const uploadedFilePath = req.file?.path;
-//   console.log("Uploaded file path try 1:", uploadedFilePath);
-//   try {
-//     if (!uploadedFilePath) {
-//       return res.status(400).json({ error: "No image uploaded" });
-//     }
-
-//     let dishName = await identifyWithAI(uploadedFilePath, "image/jpeg");
-//     console.log("Dish identified:", dishName);
-
-//     if (dishName) {
-//       const recipe = await generateRecipe(dishName);
-//       console.log("Recipe generated:", recipe);
-//       await fs.unlink(uploadedFilePath);
-//       return res.status(200).json({
-//         dish: dishName,
-//         recipe: JSON.parse(recipe),
-//       });
-//     }
-
-//     // If no dish is identified
-//     await fs.unlink(uploadedFilePath);
-//     return res.status(404).json({
-//       dish: null,
-//       recipe: null,
-//       error: "Dish could not be identified",
-//     });
-//   } catch (error) {
-//     console.error(error);
-//     if (uploadedFilePath) {
-//       console.log("Deleting uploaded file...", uploadedFilePath);
-//       await fs.unlink(uploadedFilePath);
-//     }
-//     console.error("Error processing image:", error);
-//     res.status(500).json({
-//       error: "An error occurred while processing the image",
-//     });
-//   }
-// });
-//by disname
+// Generate recipe by dish name
 router.post("/generate", async (req, res) => {
   const { dishName } = req.body;
+
+  if (!dishName || dishName.trim() === "") {
+    return res.status(400).json({ error: "Dish name is required" });
+  }
+
   try {
-    const recipe = await generateRecipe(dishName);
-    console.log("Recipe generated:", recipe);
-    const recipeObj = JSON.parse(recipe);
+    const recipeObj = await retryOperation(
+      () => generateRecipe(dishName.trim())
+    );
+
     res.status(200).json({
       dish: dishName,
       recipe: recipeObj,
     });
   } catch (error) {
-    console.error("Error generating recipe:", error);
+    console.error("❌ Error generating recipe:", error);
+
+    if (error.message.includes("503") || error.message.includes("overloaded")) {
+      return res.status(503).json({
+        error: "The AI service is currently overloaded. Please try again in a few moments.",
+        retryAfter: 30
+      });
+    }
+
     res.status(500).json({
-      error: "An error occurred while generating the recipe",
+      error: "An error occurred while generating the recipe. Please try again.",
     });
   }
-}
-);
-
+});
 
 module.exports = router;

@@ -5,10 +5,10 @@ require("dotenv").config();
 const apiKey = process.env.GEMINI_API_KEY;
 const genAI = new GoogleGenerativeAI(apiKey);
 const fileManager = new GoogleAIFileManager(apiKey);
-const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash-8b" });
+const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" });
 
 const generationConfig = {
-  temperature: 2,
+  temperature: 0.6,
   topP: 0.95,
   topK: 40,
   maxOutputTokens: 8192,
@@ -19,7 +19,7 @@ async function uploadToGemini(path, mimeType) {
   try {
     const uploadResult = await fileManager.uploadFile(path, {
       mimeType,
-      displayName: path.split("/").pop(),
+      displayName: path.split(/[/\\]/).pop(), // Handle both Unix and Windows paths
     });
 
     return uploadResult.file;
@@ -46,7 +46,13 @@ async function identifyWithAI(filePath, mimeType) {
               },
             },
             {
-              text: "You are a chef.\nIdentify the dish in this image and write just the name",
+              text: `You are a professional chef and food expert.
+Identify the dish in this image and return a JSON object with this exact structure:
+{
+  "dish": "exact dish name"
+}
+
+Return ONLY valid JSON. If you cannot identify the dish, return: {"dish": "Unknown"}`,
             },
           ],
         },
@@ -54,52 +60,75 @@ async function identifyWithAI(filePath, mimeType) {
     });
 
     const result = await chatSession.sendMessage("Identify the dish.");
-    return JSON.parse(result.response.text());
+    
+    if (!result || !result.response) {
+      throw new Error("No response from Gemini model");
+    }
+
+    const text = result.response.text();
+    console.log("📥 Dish Identification Response:", text);
+
+    // Parse and validate response
+    const parsed = JSON.parse(text);
+    
+    if (!parsed.dish || parsed.dish === "Unknown") {
+      throw new Error("Could not identify dish from image");
+    }
+
+    return parsed;
   } catch (error) {
     console.error("Error during AI processing:", error);
+    // Re-throw with more context
+    throw new Error(`AI identification failed: ${error.message}`);
   }
 }
 
 async function generateRecipe(dishName) {
-  const chatSession = await model.startChat({
-    generationConfig,
-    history: [
-      {
-        role: "user",
-        parts: [
-          { text: `Dish Name = ${dishName}` },
-          {
-            text: `Dish Name = ${dishName}
-You are a professional chef. Based on the provided dish name, generate the following in JSON format:
-
-- Title: The name of the dish.
-- Ingredients: List of ingredients with quantities (e.g., '1 kg boneless chicken').
-- Method: Step-by-step instructions (e.g., 'Marinate chicken with spices for 30 minutes').
-- Tips: Additional cooking tips (e.g., 'Use bone-in chicken for better flavor').
-
-Ensure the response follows this structure:
-
-{
-  "Title": "Chicken Biryani",
-  "Ingredients": ["1 kg boneless chicken", "1 large onion, chopped", ...],
-  "Method": ["Marinate the chicken with spices", "Cook the chicken in oil", ...],
-  "Tips": ["Use bone-in chicken for better flavor", "Adjust chili according to taste", ...]
-};`,
-          },
-        ],
-      },
-    ],
-  });
-
   try {
+    const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" });
+
+    const chatSession = model.startChat({
+      generationConfig,
+      history: [
+        {
+          role: "user",
+          parts: [
+            {
+              text: `You are a professional chef. 
+Given the dish name "${dishName}", generate a JSON object with the following structure:
+{
+  "title": "Dish name here",
+  "ingredients": ["ingredient 1 with quantity", "ingredient 2 with quantity"],
+  "method": ["Step 1", "Step 2", "Step 3"],
+  "tips": ["Tip 1", "Tip 2"]
+}
+
+⚠️ Return ONLY valid JSON. Do not include explanations, markdown formatting, or code blocks.`,
+            },
+          ],
+        },
+      ],
+    });
+
     const result = await chatSession.sendMessage(dishName);
-    return result.response.text();
+
+    if (!result || !result.response) {
+      throw new Error("No response from Gemini model");
+    }
+
+    const text = result.response.text();
+    console.log("📥 Recipe Generation Response:", text);
+
+    // Validate it's valid JSON
+    const parsed = JSON.parse(text);
+    return parsed;
   } catch (error) {
-    console.error("Error generating dish details:", error);
+    console.error("❌ Error generating dish details:", error);
+    throw new Error(`Recipe generation failed: ${error.message}`);
   }
 }
 
 module.exports = {
   generateRecipe,
   identifyWithAI,
-};
+};  

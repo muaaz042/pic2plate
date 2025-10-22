@@ -27,20 +27,28 @@ const Home = () => {
                 title: "Oops...",
                 text: "Please enter recipe name"
             });
-            return
+            return;
         }
         setLoading(true);
         setError(null);
 
         try {
             const res = await axios.post(`${BACKEND_URL}/api/generate`, { dishName }, config);
-            console.log(res.data);
+            console.log("Response:", res.data);
             setResponse(res.data);
+            setDishName("");
         } catch (error) {
             console.error("Error in Axios request:", error.response || error);
-            const message = error.response?.data?.message || "Something went wrong!";
+            const message = error.response?.data?.error || error.response?.data?.message || "Something went wrong!";
             setError(message);
+            setDishName("");
             setResponse(null);
+            
+            Swal.fire({
+                icon: "error",
+                title: "Error",
+                text: message
+            });
         } finally {
             setLoading(false);
         }
@@ -57,7 +65,8 @@ const Home = () => {
         }
 
         setLoading(true);
-        setError(null); // Clear previous errors
+        setError(null);
+        setSelectedFile(null); // Clear file input
 
         try {
             const formData = new FormData();
@@ -69,21 +78,33 @@ const Home = () => {
                 },
             });
 
-            console.log(res.data);
-            if(res.data.recipe.Ingredients.length == 0){
+            console.log("Response:", res.data);
+            
+            // Check for lowercase property names (from backend)
+            const ingredients = res.data?.recipe?.ingredients || res.data?.recipe?.Ingredients || [];
+            
+            if (ingredients.length === 0) {
                 Swal.fire({
                     icon: "error",
                     title: "Oops...",
-                    text: "No Dish found"
+                    text: "No dish found in the image"
                 });
+                setResponse(null);
                 return;
             }
+            
             setResponse(res.data);
         } catch (error) {
             console.error("Error in Axios request:", error.response || error);
-            const message = error.response?.data?.message || "Something went wrong!";
+            const message = error.response?.data?.error || error.response?.data?.message || "Something went wrong!";
             setError(message);
             setResponse(null);
+            
+            Swal.fire({
+                icon: "error",
+                title: "Error",
+                text: message
+            });
         } finally {
             setLoading(false);
         }
@@ -119,12 +140,14 @@ const Home = () => {
                         className="text-zinc-600 font-mono ring-1 md:h-16 h-12 text-xl ring-zinc-400 focus:ring-2 w-full focus:ring-orange outline-none duration-300 placeholder:text-zinc-600 placeholder:opacity-50 rounded-full px-4 py-1 shadow-md focus:shadow-lg focus:shadow-orange"
                         placeholder="Enter recipe name..."
                         onChange={(e) => setDishName(e.target.value)}
+                        value={dishName}
                         type="text"
                     />
 
                     <button
                         onClick={handleTextSubmit}
-                        className="flex justify-center gap-2 items-center mx-auto shadow-xl text-lg bg-gray-50 backdrop-blur-md lg:font-semibold isolation-auto border-gray-50 before:absolute before:w-full before:transition-all before:duration-700 before:hover:w-full before:-left-full before:hover:left-0 before:rounded-2xl before:bg-orange hover:text-gray-50 before:-z-10 before:aspect-square before:hover:scale-150 before:hover:duration-700 relative z-10 px-4 py-2 overflow-hidden border-2 rounded-2xl group"
+                        disabled={loading}
+                        className="flex justify-center gap-2 items-center mx-auto shadow-xl text-lg bg-gray-50 backdrop-blur-md lg:font-semibold isolation-auto border-gray-50 before:absolute before:w-full before:transition-all before:duration-700 before:hover:w-full before:-left-full before:hover:left-0 before:rounded-2xl before:bg-orange hover:text-gray-50 before:-z-10 before:aspect-square before:hover:scale-150 before:hover:duration-700 relative z-10 px-4 py-2 overflow-hidden border-2 rounded-2xl group disabled:opacity-50 disabled:cursor-not-allowed"
                     >
                         Give Recipe
                     </button>
@@ -137,13 +160,15 @@ const Home = () => {
                     <input
                         id="picture"
                         type="file"
+                        accept="image/jpeg,image/jpg,image/png,image/webp"
                         onChange={(e) => setSelectedFile(e.target.files[0])}
                         className="flex h-10 w-full hover:cursor-pointer rounded-md border border-input bg-white px-3 py-2 text-sm text-gray-400 file:border-0 file:bg-transparent file:text-gray-600 file:text-sm file:font-medium"
                     />
 
                     <button
                         onClick={handleFileSubmit}
-                        className="flex justify-center gap-2 items-center mx-auto shadow-xl text-lg bg-gray-50 backdrop-blur-md lg:font-semibold isolation-auto border-gray-50 before:absolute before:w-full before:transition-all before:duration-700 before:hover:w-full before:-left-full before:hover:left-0 before:rounded-2xl before:bg-orange hover:text-gray-50 before:-z-10 before:aspect-square before:hover:scale-150 before:hover:duration-700 relative z-10 px-4 py-2 overflow-hidden border-2 rounded-2xl group"
+                        disabled={loading}
+                        className="flex justify-center gap-2 items-center mx-auto shadow-xl text-lg bg-gray-50 backdrop-blur-md lg:font-semibold isolation-auto border-gray-50 before:absolute before:w-full before:transition-all before:duration-700 before:hover:w-full before:-left-full before:hover:left-0 before:rounded-2xl before:bg-orange hover:text-gray-50 before:-z-10 before:aspect-square before:hover:scale-150 before:hover:duration-700 relative z-10 px-4 py-2 overflow-hidden border-2 rounded-2xl group disabled:opacity-50 disabled:cursor-not-allowed"
                     >
                         Upload Image
                     </button>
