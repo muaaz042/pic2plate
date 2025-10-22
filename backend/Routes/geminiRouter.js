@@ -6,7 +6,7 @@ const fs = require("fs/promises");
 require("dotenv").config();
 const { identifyWithAI, generateRecipe } = require("./gemini");
 
-// // ==================== FOR LOCAL DEVELOPMENT ====================
+// ==================== FOR LOCAL DEVELOPMENT ====================
 // const storage = multer.diskStorage({
 //   destination: (req, file, cb) => {
 //     const uploadPath = path.join(__dirname, "../uploads");
@@ -59,7 +59,6 @@ const upload = multer({
     cb(new Error("Only image files (jpeg, jpg, png, webp) are allowed"));
   }
 });
-// ============================================================
 
 // Helper function to clean up file
 async function cleanupFile(filePath) {
@@ -115,19 +114,12 @@ router.post("/upload", upload.single("image"), async (req, res) => {
 
     const dishName = dishData.dish;
 
-    // Generate recipe with retry logic
-    const recipeObj = await retryOperation(
-      () => generateRecipe(dishName)
-    );
-    
-    console.log("✅ Recipe generated:", recipeObj);
-
     // Clean up file after successful processing
     await cleanupFile(uploadedFilePath);
 
+    // Return only dish name, frontend will call /generate for recipe
     return res.status(200).json({
       dish: dishName,
-      recipe: recipeObj,
     });
   } catch (error) {
     console.error("❌ Error processing image:", error);

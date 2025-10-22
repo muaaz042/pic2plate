@@ -66,34 +66,58 @@ const Home = () => {
 
         setLoading(true);
         setError(null);
+        const fileToUpload = selectedFile;
         setSelectedFile(null); // Clear file input
 
         try {
             const formData = new FormData();
-            formData.append("image", selectedFile);
+            formData.append("image", fileToUpload);
 
-            const res = await axios.post(`${BACKEND_URL}/api/upload`, formData, {
+            // Step 1: Upload image and identify dish
+            const uploadRes = await axios.post(`${BACKEND_URL}/api/upload`, formData, {
                 headers: {
                     "Content-Type": "multipart/form-data",
                 },
             });
 
-            console.log("Response:", res.data);
+            console.log("Upload Response:", uploadRes.data);
             
-            // Check for lowercase property names (from backend)
-            const ingredients = res.data?.recipe?.ingredients || res.data?.recipe?.Ingredients || [];
+            const dishName = uploadRes.data?.dish;
             
-            if (ingredients.length === 0) {
+            if (!dishName) {
                 Swal.fire({
                     icon: "error",
                     title: "Oops...",
                     text: "No dish found in the image"
                 });
                 setResponse(null);
+                setLoading(false);
+                return;
+            }
+
+            // Step 2: Generate recipe for identified dish
+            const recipeRes = await axios.post(`${BACKEND_URL}/api/generate`, 
+                { dishName }, 
+                config
+            );
+
+            console.log("Recipe Response:", recipeRes.data);
+            
+            // Check for lowercase property names (from backend)
+            const ingredients = recipeRes.data?.recipe?.ingredients || recipeRes.data?.recipe?.Ingredients || [];
+            
+            if (ingredients.length === 0) {
+                Swal.fire({
+                    icon: "error",
+                    title: "Oops...",
+                    text: "Could not generate recipe"
+                });
+                setResponse(null);
+                setLoading(false);
                 return;
             }
             
-            setResponse(res.data);
+            setResponse(recipeRes.data);
         } catch (error) {
             console.error("Error in Axios request:", error.response || error);
             const message = error.response?.data?.error || error.response?.data?.message || "Something went wrong!";
