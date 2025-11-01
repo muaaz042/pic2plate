@@ -5,13 +5,14 @@ require("dotenv").config();
 const apiKey = process.env.GEMINI_API_KEY;
 const genAI = new GoogleGenerativeAI(apiKey);
 const fileManager = new GoogleAIFileManager(apiKey);
-const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" });
+const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash-lite" });
 
 const generationConfig = {
-  temperature: 0.6,
+  temperature: 0,
   topP: 0.95,
   topK: 40,
-  maxOutputTokens: 8192,
+  // thinkingBudget: 0,
+  maxOutputTokens: 1024,
   responseMimeType: "application/json",
 };
 
@@ -46,14 +47,11 @@ async function identifyWithAI(filePath, mimeType) {
               },
             },
             {
-              text: `You are a professional chef and food expert.
-Identify the dish in this image and return a JSON object with this exact structure:
-{
-  "dish": "exact dish name"
-}
+  text: `You are a chef. Identify the dish in the image and return only JSON:
+  {"dish": "exact dish name"} 
+  If unsure, return {"dish": "Unknown"}.`
+},
 
-Return ONLY valid JSON. If you cannot identify the dish, return: {"dish": "Unknown"}`,
-            },
           ],
         },
       ],
@@ -85,7 +83,7 @@ Return ONLY valid JSON. If you cannot identify the dish, return: {"dish": "Unkno
 
 async function generateRecipe(dishName) {
   try {
-    const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" });
+    const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash-lite" });
 
     const chatSession = model.startChat({
       generationConfig,
@@ -95,15 +93,15 @@ async function generateRecipe(dishName) {
           parts: [
             {
               text: `You are a professional chef. 
-Given the dish name "${dishName}", generate a JSON object with the following structure:
-{
-  "title": "Dish name here",
-  "ingredients": ["ingredient 1 with quantity", "ingredient 2 with quantity"],
-  "method": ["Step 1", "Step 2", "Step 3"],
-  "tips": ["Tip 1", "Tip 2"]
-}
+                Given the dish name "${dishName}", generate a JSON object with the following structure:
+                {
+                  "title": "Dish name here",
+                  "ingredients": ["ingredient 1 with quantity", "ingredient 2 with quantity"],
+                  "method": ["Step 1", "Step 2", "Step 3"],
+                  "tips": ["Tip 1", "Tip 2"]
+                }
 
-⚠️ Return ONLY valid JSON. Do not include explanations, markdown formatting, or code blocks.`,
+                ⚠️ Return ONLY valid JSON. Do not include explanations, markdown formatting, or code blocks.`,
             },
           ],
         },
@@ -130,5 +128,5 @@ Given the dish name "${dishName}", generate a JSON object with the following str
 
 module.exports = {
   generateRecipe,
-  identifyWithAI,
+  identifyWithAI, 
 };  

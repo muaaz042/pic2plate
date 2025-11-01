@@ -96,64 +96,37 @@ router.post("/upload", upload.single("image"), async (req, res) => {
 
   try {
     if (!uploadedFilePath) {
-      return res.status(400).json({ error: "No image uploaded" });
+      return res.status(400).send("No image uploaded");
     }
 
-    // Verify file exists
-    try {
-      await fs.access(uploadedFilePath);
-    } catch {
-      return res.status(400).json({ error: "Uploaded file not found" });
-    }
+    await fs.access(uploadedFilePath);
 
-    // Identify dish with retry logic
     const dishData = await retryOperation(
       () => identifyWithAI(uploadedFilePath, req.file.mimetype)
     );
-    
-    console.log("✅ Dish identified:", dishData);
 
+    console.log("✅ Dish identified:", dishData);
     const dishName = dishData.dish;
 
-    // Generate recipe with retry logic
-    const recipeObj = await retryOperation(
-      () => generateRecipe(dishName)
-    );
-    
-    console.log("✅ Recipe generated:", recipeObj);
-
-    // Clean up file after successful processing
     await cleanupFile(uploadedFilePath);
 
-    return res.status(200).json({
-      dish: dishName,
-      recipe: recipeObj,
-    });
+    // 🔹 Return only dish name as plain text
+    return res.status(200).send(dishName);
+
   } catch (error) {
     console.error("❌ Error processing image:", error);
-    
-    // Clean up file on error
-    if (uploadedFilePath) {
-      await cleanupFile(uploadedFilePath);
-    }
 
-    // Handle specific error types
+    if (uploadedFilePath) await cleanupFile(uploadedFilePath);
+
     if (error.message.includes("503") || error.message.includes("overloaded")) {
-      return res.status(503).json({
-        error: "The AI service is currently overloaded. Please try again in a few moments.",
-        retryAfter: 30
-      });
+      return res.status(503).send("AI service overloaded. Try again later.");
     }
 
     if (error.message.includes("Could not identify")) {
-      return res.status(404).json({
-        error: "Could not identify the dish from the image. Please try a clearer photo.",
-      });
+      return res.status(404).send("Could not identify the dish.");
     }
 
-    res.status(500).json({
-      error: "An error occurred while processing the image. Please try again.",
-    });
+    res.status(500).send("Error processing the image. Try again.");
   }
 });
 
